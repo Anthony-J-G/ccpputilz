@@ -1,6 +1,5 @@
 #ifndef HELPER_H
 
-void Function1();
-
+void Function7();
 
 #endif
