@@ -69,6 +69,11 @@ const FileList = struct {
     header_bitmask: u8 = @intFromEnum(HeaderType.invalid),
     allocator: std.mem.Allocator,
 
+    pub const Error = error{
+        OutOfMemory,
+        FileNotFound,
+    };
+
     fn init(allocator: std.mem.Allocator, sbm: u8, hbm: u8) !FileList {
         return FileList{
             .allocator = allocator,
@@ -81,7 +86,7 @@ const FileList = struct {
 
     fn findSources(self: *FileList, srcDir: []const u8) !void {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        const dir = try fs.cwd().openDir(srcDir, .{ .iterate = true });
+        const dir = fs.cwd().openDir(srcDir, .{ .iterate = true }) catch @panic("Can't open Directory");
         var walker = try dir.walk(gpa.allocator());
         defer walker.deinit();
 
@@ -139,9 +144,9 @@ pub fn discoverCSourceFiles(b: *std.Build, cs: *std.Build.Step.Compile, options:
     defer filelist.deinit();
     std.debug.print("found {d} source files in directory {s}", .{filelist.sources.items.len, options.root});
 
-    try filelist.findSources(options.root);
+    filelist.findSources(options.root) catch @panic("Filesystem Error in FileList struct");
     cs.addCSourceFiles(.{
-        .root = b.path(options.root),
+        .root = b.path(""),
         .files = filelist.sources.items,
         .flags = options.flags,
     });
