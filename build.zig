@@ -1,20 +1,20 @@
 const std = @import("std");
 
-const zcpputils = @import("zcpputils.zig");
-pub usingnamespace zcpputils;
+const ccpputilz = @import("ccpputilz.zig");
+pub usingnamespace ccpputilz;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    _ = b.addModule("zcpputils", .{
-        .root_source_file = b.path("zcpputils.zig"),
+    _ = b.addModule("ccpputilz", .{
+        .root_source_file = b.path("ccpputilz.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     const tests = b.addTest(.{
-        .root_source_file = b.path("zcpputils.zig"),
+        .root_source_file = b.path("ccpputilz.zig"),
         .target = target,
         .optimize = optimize,
     });

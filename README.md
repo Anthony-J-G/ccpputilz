@@ -1,3 +1,3 @@
-# Zig C/C++ Utility Functions
+# Zig, C/C++ Compilation Utility Functions
 
-`zcpputils` is a small utility library for aiding with building C/C++ libraries using Zig's buildsystem.
+`ccpputilz` is a small utility library for aiding with building C/C++ libraries using Zig's buildsystem.
