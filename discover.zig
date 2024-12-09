@@ -128,7 +128,7 @@ pub const DiscoverCSourceFilesOptions = struct {
     include_extensions: ?[]const []const u8 = &.{".c", ".cpp"},
 };
 
-
+/// Discover C/C++ source files of the given extensions in a root directory and implicitly add them to the Compile Step
 pub fn discoverCSourceFiles(b: *std.Build, cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var filelist = try FileList.init(
