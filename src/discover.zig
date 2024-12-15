@@ -86,6 +86,10 @@ const FileList = struct {
 
     fn findSources(self: *FileList, srcDir: []const u8) !void {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        var dir = fs.cwd().openDir(srcDir, .{ .iterate = true }) catch @panic("Can't open Directory");
+        defer dir.close();
+
+        // std.debug.print("Searching {s} for source files\n", .{srcDir});
         const dir = fs.cwd().openDir(srcDir, .{ .iterate = true }) catch @panic("Can't open Directory");
         var walker = try dir.walk(gpa.allocator());
         defer walker.deinit();
@@ -98,15 +102,10 @@ const FileList = struct {
             if (st == SourceType.invalid) {
                 continue;
             } else if (st.isValidSource(self.source_bitmask)) {
-                const fullpath = try fs.path.join(self.allocator, &[_][]const u8{ srcDir, entry.path });
+                const fullpath = try fs.path.join(self.allocator, &[_][]const u8{ entry.path });
                 try self.sources.append(self.allocator, fullpath);
             }
         }
-    }
-
-    fn outputHeaders(targetDir: []const u8) !void {
-        const t = try fs.cwd().openDir(".", .{ .iterate = true });
-        t.makeDir(targetDir) catch @panic("Can't make include directory");
     }
 
     fn deinit(self: *FileList) void {
@@ -122,8 +121,9 @@ const FileList = struct {
 };
 
 
-pub const DiscoverCSourceFilesOptions = struct {    
-    root: []const u8 = "",
+pub const DiscoverCSourceFilesOptions = struct {
+    /// Path relative to the build directory
+    root: ?[]const u8 = "",
     flags: []const []const u8 = &.{},
     /// File paths that end in any of these suffixes will be excluded from installation.
     exclude_extensions: []const []const u8 = &.{},
@@ -134,7 +134,10 @@ pub const DiscoverCSourceFilesOptions = struct {
 };
 
 /// Discover C/C++ source files of the given extensions in a root directory and implicitly add them to the Compile Step
-pub fn discoverCSourceFiles(b: *std.Build, cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
+pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
+    const b = cs.root_module.owner;
+    const search_root = options.root orelse "";
+    const search_root_path = b.path(search_root);
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var filelist = try FileList.init(
         gpa.allocator(),
@@ -142,11 +145,9 @@ pub fn discoverCSourceFiles(b: *std.Build, cs: *std.Build.Step.Compile, options:
         (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp))
     );
     defer filelist.deinit();
-    std.debug.print("found {d} source files in directory {s}", .{filelist.sources.items.len, options.root});
-
-    filelist.findSources(options.root) catch @panic("Filesystem Error in FileList struct");
+    filelist.findSources(search_root) catch @panic("Filesystem Error in FileList struct");
     cs.addCSourceFiles(.{
-        .root = b.path(""),
+        .root = search_root_path,
         .files = filelist.sources.items,
         .flags = options.flags,
     });
@@ -162,3 +163,8 @@ test "check FileList for leaks" {
 
     try filelist.findFiles("./Source", "./Source");
 }
+
+test "discover the correct amount of sources" {
+
+}
+

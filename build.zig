@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    _ = b.addModule("ccpputilz", .{
+    _ = b.addModule("utilz", .{
         .root_source_file = b.path("src/ccpputilz.zig"),
         .target = target,
         .optimize = optimize,
@@ -18,7 +18,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
     const run_tests = b.addRunArtifact(tests);
 
     const test_step = b.step("test", "Run unit tests");
