@@ -90,7 +90,7 @@ const FileList = struct {
         defer dir.close();
 
         // std.debug.print("Searching {s} for source files\n", .{srcDir});
-
+        const dir = fs.cwd().openDir(srcDir, .{ .iterate = true }) catch @panic("Can't open Directory");
         var walker = try dir.walk(gpa.allocator());
         defer walker.deinit();
 
@@ -138,7 +138,6 @@ pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourc
     const b = cs.root_module.owner;
     const search_root = options.root orelse "";
     const search_root_path = b.path(search_root);
-
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var filelist = try FileList.init(
         gpa.allocator(),
@@ -146,7 +145,6 @@ pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourc
         (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp))
     );
     defer filelist.deinit();
-
     filelist.findSources(search_root) catch @panic("Filesystem Error in FileList struct");
     cs.addCSourceFiles(.{
         .root = search_root_path,
@@ -169,3 +167,4 @@ test "check FileList for leaks" {
 test "discover the correct amount of sources" {
 
 }
+
