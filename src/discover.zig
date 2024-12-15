@@ -142,7 +142,7 @@ pub fn discoverCSourceFiles(b: *std.Build, cs: *std.Build.Step.Compile, options:
         (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp))
     );
     defer filelist.deinit();
-    std.debug.print("found {d} source files in directory {s}", .{filelist.sources.items.len, options.root});
+    // std.debug.print("found {d} source files in directory {s}", .{filelist.sources.items.len, options.root});
 
     filelist.findSources(options.root) catch @panic("Filesystem Error in FileList struct");
     cs.addCSourceFiles(.{
