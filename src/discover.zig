@@ -89,8 +89,6 @@ const FileList = struct {
         var dir = fs.cwd().openDir(srcDir, .{ .iterate = true }) catch @panic("Can't open Directory");
         defer dir.close();
 
-        // std.debug.print("Searching {s} for source files\n", .{srcDir});
-        const dir = fs.cwd().openDir(srcDir, .{ .iterate = true }) catch @panic("Can't open Directory");
         var walker = try dir.walk(gpa.allocator());
         defer walker.deinit();
 
@@ -102,7 +100,7 @@ const FileList = struct {
             if (st == SourceType.invalid) {
                 continue;
             } else if (st.isValidSource(self.source_bitmask)) {
-                const fullpath = try fs.path.join(self.allocator, &[_][]const u8{ entry.path });
+                const fullpath = try fs.path.join(self.allocator, &[_][]const u8{entry.path});
                 try self.sources.append(self.allocator, fullpath);
             }
         }
@@ -120,7 +118,6 @@ const FileList = struct {
     }
 };
 
-
 pub const DiscoverCSourceFilesOptions = struct {
     /// Path relative to the build directory
     root: ?[]const u8 = "",
@@ -130,7 +127,7 @@ pub const DiscoverCSourceFilesOptions = struct {
     /// Only file paths that end in any of these suffixes will be included in installation.
     /// `null` means that all suffixes will be included.
     /// `exclude_extensions` takes precedence over `include_extensions`.
-    include_extensions: ?[]const []const u8 = &.{".c", ".cpp"},
+    include_extensions: ?[]const []const u8 = &.{ ".c", ".cpp" },
 };
 
 /// Discover C/C++ source files of the given extensions in a root directory and implicitly add them to the Compile Step
@@ -139,11 +136,7 @@ pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourc
     const search_root = options.root orelse "";
     const search_root_path = b.path(search_root);
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    var filelist = try FileList.init(
-        gpa.allocator(),
-        (@intFromEnum(SourceType.c) | @intFromEnum(SourceType.cpp) | @intFromEnum(SourceType.cc)),
-        (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp))
-    );
+    var filelist = try FileList.init(gpa.allocator(), (@intFromEnum(SourceType.c) | @intFromEnum(SourceType.cpp) | @intFromEnum(SourceType.cc)), (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp)));
     defer filelist.deinit();
     filelist.findSources(search_root) catch @panic("Filesystem Error in FileList struct");
     cs.addCSourceFiles(.{
@@ -151,9 +144,7 @@ pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourc
         .files = filelist.sources.items,
         .flags = options.flags,
     });
-
 }
-
 
 test "check FileList for leaks" {
     var filelist = try FileList.init(std.testing.allocator);
@@ -164,7 +155,4 @@ test "check FileList for leaks" {
     try filelist.findFiles("./Source", "./Source");
 }
 
-test "discover the correct amount of sources" {
-
-}
-
+test "discover the correct amount of sources" {}
