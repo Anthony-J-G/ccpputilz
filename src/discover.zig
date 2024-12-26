@@ -74,19 +74,19 @@ const FileList = struct {
         FileNotFound,
     };
 
-    fn init(allocator: std.mem.Allocator, sbm: u8, hbm: u8) !FileList {
+    fn init(allocator: std.mem.Allocator, bmSrc: u8, bmHeader: u8) !FileList {
         return FileList{
             .allocator = allocator,
-            .source_bitmask = sbm,
-            .header_bitmask = hbm,
+            .source_bitmask = bmHeader,
+            .header_bitmask = bmSrc,
             .sources = .{},
             .headers = .{},
         };
     }
 
-    fn findSources(self: *FileList, srcDir: []const u8) !void {
+    fn findSources(self: *FileList, b: *std.Build, srcDir: []const u8) !void {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        var dir = fs.cwd().openDir(srcDir, .{ .iterate = true }) catch @panic("Can't open Directory");
+        var dir = fs.cwd().openDir(b.path(srcDir).src_path.sub_path, .{ .iterate = true }) catch @panic("Can't open Directory");
         defer dir.close();
 
         var walker = try dir.walk(gpa.allocator());
@@ -130,15 +130,19 @@ pub const DiscoverCSourceFilesOptions = struct {
     include_extensions: ?[]const []const u8 = &.{ ".c", ".cpp" },
 };
 
-/// Discover C/C++ source files of the given extensions in a root directory and implicitly add them to the Compile Step
+/// Discover C/C++ source files of the given extensions in a root directory and implicitly add them to the
+/// input Compile Step
 pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
     const b = cs.root_module.owner;
+
     const search_root = options.root orelse "";
     const search_root_path = b.path(search_root);
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var filelist = try FileList.init(gpa.allocator(), (@intFromEnum(SourceType.c) | @intFromEnum(SourceType.cpp) | @intFromEnum(SourceType.cc)), (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp)));
     defer filelist.deinit();
-    filelist.findSources(search_root) catch @panic("Filesystem Error in FileList struct");
+
+    filelist.findSources(b, search_root) catch @panic("Filesystem Error in FileList struct");
     cs.addCSourceFiles(.{
         .root = search_root_path,
         .files = filelist.sources.items,
@@ -147,12 +151,14 @@ pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourc
 }
 
 test "check FileList for leaks" {
-    var filelist = try FileList.init(std.testing.allocator);
+    var filelist = try FileList.init(std.testing.allocator, @intFromEnum(SourceType.c), @intFromEnum(HeaderType.h));
     filelist.source_bitmask = (@intFromEnum(SourceType.c) | @intFromEnum(SourceType.cpp) | @intFromEnum(SourceType.cc));
     filelist.header_bitmask = (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp));
     defer filelist.deinit();
 
-    try filelist.findFiles("./Source", "./Source");
+    try filelist.findSources(
+        "tests/discover",
+    );
 }
 
 test "discover the correct amount of sources" {}
