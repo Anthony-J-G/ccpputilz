@@ -84,17 +84,15 @@ const FileList = struct {
         };
     }
 
-    fn findSources(self: *FileList, srcDir: []const u8) !void {
+    fn findSources(self: *FileList, srcDir: LazyPath) !void {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
         var dir = switch (srcDir) {
-            .src_path => fs.cwd().openDir(
-                            srcDir.src_path.sub_path, .{ .iterate = true }
-                        ) catch @panic("Can't open Directory"),
-            .dependency => fs.cwd().openDir(
-                            srcDir.dependency.sub_path, .{ .iterate = true }
-                        ) catch @panic("Can't open Directory"),
-            else => {@panic("Invalid Lazy Path"); }
-        };        
+            .src_path => fs.cwd().openDir(srcDir.src_path.sub_path, .{ .iterate = true }) catch @panic("Can't open Directory"),
+            .dependency => fs.cwd().openDir(srcDir.dependency.sub_path, .{ .iterate = true }) catch @panic("Can't open Directory"),
+            else => {
+                @panic("Invalid Lazy Path");
+            },
+        };
         defer dir.close();
 
         var walker = try dir.walk(gpa.allocator());
