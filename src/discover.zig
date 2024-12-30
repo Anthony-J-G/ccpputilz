@@ -84,9 +84,17 @@ const FileList = struct {
         };
     }
 
-    fn findSources(self: *FileList, b: *std.Build, srcDir: []const u8) !void {
+    fn findSources(self: *FileList, srcDir: []const u8) !void {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        var dir = fs.cwd().openDir(b.path(srcDir).src_path.sub_path, .{ .iterate = true }) catch @panic("Can't open Directory");
+        var dir = switch (srcDir) {
+            .src_path => fs.cwd().openDir(
+                            srcDir.src_path.sub_path, .{ .iterate = true }
+                        ) catch @panic("Can't open Directory"),
+            .dependency => fs.cwd().openDir(
+                            srcDir.dependency.sub_path, .{ .iterate = true }
+                        ) catch @panic("Can't open Directory"),
+            else => {@panic("Invalid Lazy Path"); }
+        };        
         defer dir.close();
 
         var walker = try dir.walk(gpa.allocator());
@@ -120,7 +128,7 @@ const FileList = struct {
 
 pub const DiscoverCSourceFilesOptions = struct {
     /// Path relative to the build directory
-    root: ?[]const u8 = "",
+    root: ?LazyPath,
     flags: []const []const u8 = &.{},
     /// File paths that end in any of these suffixes will be excluded from installation.
     exclude_extensions: []const []const u8 = &.{},
@@ -134,17 +142,15 @@ pub const DiscoverCSourceFilesOptions = struct {
 /// input Compile Step
 pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
     const b = cs.root_module.owner;
-
-    const search_root = options.root orelse "";
-    const search_root_path = b.path(search_root);
+    const search_root = options.root orelse b.path("");
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var filelist = try FileList.init(gpa.allocator(), (@intFromEnum(SourceType.c) | @intFromEnum(SourceType.cpp) | @intFromEnum(SourceType.cc)), (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp)));
     defer filelist.deinit();
 
-    filelist.findSources(b, search_root) catch @panic("Filesystem Error in FileList struct");
+    filelist.findSources(search_root) catch @panic("Filesystem Error in FileList struct");
     cs.addCSourceFiles(.{
-        .root = search_root_path,
+        .root = search_root,
         .files = filelist.sources.items,
         .flags = options.flags,
     });
