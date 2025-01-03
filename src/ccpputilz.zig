@@ -6,6 +6,8 @@ pub const corrosion = @import("corrosion.zig");
 pub const version = @import("version.zig");
 pub const cdb = @import("compile_commands.zig");
 // pub const find_vulkan = @import("find_vulkan.zig");
+pub const gtest = @import("gtest.zig");
+
 
 test {
     testing.refAllDecls(@This());
