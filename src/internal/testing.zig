@@ -17,11 +17,12 @@ pub fn makeTestCompileStep(name: []const u8, kind: std.Build.Step.Compile.Kind) 
     _ = std.Build.StaticLibraryOptions{
         .name = name,
         .target = getNativeTarget(),
-        .optimize = 
+        .optimize = .Debug,
     };
     _ = std.Build.SharedLibraryOptions{
         .name = name,
         .target = getNativeTarget(),
+        .optimize = .Debug,
     };
 
     switch (kind) {
