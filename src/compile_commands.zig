@@ -22,6 +22,12 @@ const CompileCommandEntry = struct {
     output: []const u8,
 };
 
+
+pub fn compileDB(_: *std.Build, _: []const []const u8) !void {
+
+}
+
+
 pub fn createStep(b: *std.Build, name: []const u8, targets: []*std.Build.Step.Compile) void {
     const step = b.allocator.create(std.Build.Step) catch @panic("Allocation failure, probably OOM");
 
