@@ -8,6 +8,9 @@ pub const cdb = @import("compile_commands.zig");
 // pub const find_vulkan = @import("find_vulkan.zig");
 pub const gtest = @import("gtest.zig");
 
+/// For internal use only
+const tests = @import("internal/testing.zig");
+
 
 test {
     testing.refAllDecls(@This());
