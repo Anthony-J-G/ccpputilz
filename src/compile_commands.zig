@@ -23,8 +23,17 @@ const CompileCommandEntry = struct {
 };
 
 
-pub fn compileDB(_: *std.Build, _: []const []const u8) !void {
+pub fn compileDB(b: *std.Build, artifacts: []const *std.Build.Step.Compile) !void {
+    const step = b.allocator.create(std.Build.Step) catch @panic("Allocation failure, probably OOM");
+    compile_steps = b.allocator.dupe(*std.Build.Step.Compile, artifacts) catch @panic("OOM");
 
+    step.* = std.Build.Step.init(.{
+        .id = .custom,
+        .name = "cc_file",
+        .makeFn = makeCdb,
+        .owner = b,
+    });
+    b.getInstallStep().dependOn(step);
 }
 
 
