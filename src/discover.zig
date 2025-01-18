@@ -56,7 +56,7 @@ const SourceFilters = struct {
     /// Only file paths that end in any of these suffixes will be included in installation.
     /// `null` means that all suffixes will be included.
     /// `exclude_extensions` takes precedence over `include_extensions`.
-    include_extensions: []const []const u8 = &.{ ".c", ".cpp", ".cc", ".cxx"},
+    include_extensions: []const []const u8 = &.{ "c", "cpp", "cc", "cxx"},
 };
 
 /// TODO: Has a pretty naive implementation at the moment because I just want to get it working. This should be revisted sooner
@@ -77,7 +77,7 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
         },
         .generated => @panic("Invalid LazyPath `srcDir`"),
     };
-    std.debug.print("root: {s}; subpath: {s}\n", .{path.root_dir.path orelse ".", path.sub_path});
+    // std.debug.print("Searching -- root: {s}; subpath: {s}\n", .{path.root_dir.path orelse ".", path.sub_path});
     var dir = try path.root_dir.handle.openDir(path.sub_path, .{.iterate = true});
     defer dir.close();
 
@@ -91,18 +91,22 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
         if (entry.kind != fs.File.Kind.file) {
             continue; // Continue if entry is NOT a file
         }
+        var it = std.mem.splitBackwardsScalar(u8, entry.basename, '.');
+        const split = it.first();
+        const file_extension = if (mem.eql(u8, split, entry.basename)) "" else split; // Handle case where there is no file extension
+
         var should_exclude = false;
         for (filters.exclude_extensions) |ext| {
-            if (mem.eql(u8, entry.basename, ext)) {
+            if (mem.eql(u8, file_extension, ext)) {
                 should_exclude = true;
                 break;
             }
-        } if (should_exclude) { continue; }
+        }
+        if (should_exclude) { continue; }
 
-        std.debug.print("{s}, ", .{entry.basename});
         var should_include = false;
         for (filters.include_extensions) |ext| {            
-            if (mem.eql(u8, entry.basename, ext)) {
+            if (mem.eql(u8, file_extension, ext)) {
                 should_include = true;
                 break;
             }
@@ -112,7 +116,7 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
             try sources.append(allocator, fullpath);
         }
     }
-    std.debug.print("\nScanned: {d} files; found {d}\n", .{t, sources.items.len});
+    // std.debug.print("\nScanned: {d} files; found {d}\n", .{t, sources.items.len});
 
     return sources;
 }
@@ -123,9 +127,7 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
 pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
     const b = cs.root_module.owner;
     const search_root = options.root orelse b.path("");
-    
     const sources = findSources(b.allocator, search_root, options.filters) catch @panic("OOM");
-    std.debug.print("Found {d} Source Files in {s}\n", .{sources.items.len, search_root.dependency.sub_path});
 
     cs.addCSourceFiles(.{
         .root = search_root,
