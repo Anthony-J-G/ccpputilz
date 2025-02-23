@@ -1,5 +1,5 @@
 const std = @import("std");
-const internal = @import("internal/testing.zig");
+const internal = @import("../internal/testing.zig");
 const LazyPath = std.Build.LazyPath;
 
 
