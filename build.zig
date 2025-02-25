@@ -6,11 +6,21 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    _ = b.addModule("utilz", .{
+    const module = b.addStaticLibrary(.{
+        .name = "utilz",
         .root_source_file = b.path("src/ccpputilz.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    // Generate Docs
+    const install_docs = b.addInstallDirectory(.{
+        .source_dir = module.getEmittedDocs(),
+        .install_dir = .{ .custom = "" },
+        .install_subdir = "docs",
+    });
+    const docs_step = b.step("docs", "Install docs into zig-out/docs");
+    docs_step.dependOn(&install_docs.step);
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
