@@ -15,6 +15,7 @@ const MakeAllTestsOptions = struct {
     compile_steps: []const *std.Build.Step.Compile,
 };
 
+/// Make all tests
 fn makeAllTests(b: *std.Build, options: MakeAllTestsOptions) void {
     const googletest = comptime { b.dependency("googletest", .{}); };
 

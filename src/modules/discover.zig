@@ -122,8 +122,8 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
 }
 
 
-/// Discover C/C++ source files of the given extensions in a root directory and implicitly add them to the
-/// input Compile Step
+/// Discover C/C++ source files of the given extensions in a root 
+/// directory and implicitly add them to the input Compile Step
 pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
     const b = cs.root_module.owner;
     const search_root = options.root orelse b.path("");
