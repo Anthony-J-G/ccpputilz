@@ -47,6 +47,11 @@ pub const DiscoverCSourceFilesOptions = struct {
     filters: SourceFilters = .{},
 };
 
+const Path = struct {
+    root_dir: Cache.Directory,
+    sub_path: []const u8,
+};
+
 
 const SourceFilters = struct {
     include_pattern: []const u8 = "", // Currently does nothing, but hopefully will be able to compare against found files using regex
@@ -62,16 +67,16 @@ const SourceFilters = struct {
 /// TODO: Has a pretty naive implementation at the moment because I just want to get it working. This should be revisted sooner
 /// rather than later.
 fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFilters) !std.ArrayListUnmanaged([]const u8) {
-    const path = switch (srcDir) {
-        .src_path => |sp| .{
+    const path: Path = switch (srcDir) {
+        .src_path => |sp| Path{
             .root_dir = sp.owner.build_root,
             .sub_path = sp.sub_path,
         },
-        .cwd_relative => |sub_path| .{
+        .cwd_relative => |sub_path| Path{
             .root_dir = Cache.Directory.cwd(),
             .sub_path = sub_path,
         },
-        .dependency => |dep| .{
+        .dependency => |dep| Path{
             .root_dir = dep.dependency.builder.build_root,
             .sub_path = dep.sub_path,
         },

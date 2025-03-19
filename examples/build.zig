@@ -1,4 +1,5 @@
 const std = @import("std");
+const Compile = std.Build.Step.Compile;
 const builtin = @import("builtin");
 const utilz = @import("ccpputilz");
 
@@ -14,7 +15,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     exe.addCSourceFile(.{
-        .file = b.path("app/main.cpp"),
+        .file = b.path("src/app/main.cpp"),
         .flags = &.{},
     });
     b.installArtifact(exe);
@@ -31,8 +32,9 @@ pub fn build(b: *std.Build) void {
     const enable_autodoc = b.option(bool, "autodoc", "attempt to test the autodoc") orelse false;
     const enable_gtest = b.option(bool, "gtest", "attempt to test the gtest integration") orelse false;
     const enable_vulkan = b.option(bool, "vulkan", "attempt to test finding the system version of Vulkan") orelse false;
+    const enable_cdb = b.option(bool, "cdb", "attempt to test the generation of a `compile_commands.json` file") orelse false;
 
-    if (enable_discover or enable_all) {
+    if (enable_discover or enable_all) {        
         try TestSourceDiscovery(b, lib);
     }
     if (enable_autodoc or enable_all) {
@@ -42,15 +44,21 @@ pub fn build(b: *std.Build) void {
         try TestGoogleTestIntegration(b);
     }
     if (enable_vulkan or enable_all) {
-        // TODO(anthony-j-g) : Add testing example
+        try TestFindVulkan(b);
+    }
+    if (enable_cdb or enable_all) {
+        try TestCompileCommandsGeneration(b, lib, exe);
     }
 }
 
 
-/// For Testing discovery of source files to be compiled into the sample library
+/// Attempt to traverse through a directory of source files and dynamically add them to a 
+/// static library. This function also enables the build system to actually compile (install) 
+/// the library and link it to the executable.
 pub fn TestSourceDiscovery(b: *std.Build, artifact: *std.Build.Step.Compile) !void {
-    try utilz.discover.discoverCSourceFiles();
-    for (artifact.)
+    try utilz.discover.discoverCSourceFiles(artifact, .{
+        .root = b.path("src/lib")
+    });
     b.installArtifact(artifact);
 }
 
@@ -64,4 +72,19 @@ pub fn TestAutodocGeneration(_: *std.Build) !void {
 /// For Testing Integration of GoogleTest inside of the project.
 pub fn TestGoogleTestIntegration(_: *std.Build) !void {    
     // TODO(anthony-j-g) : Add testing example
+}
+
+
+/// For Testing Integration of GoogleTest inside of the project.
+pub fn TestFindVulkan(_: *std.Build) !void {    
+    // TODO(anthony-j-g) : Add example calling of find_vulkan
+}
+
+
+/// For Testing Integration of GoogleTest inside of the project.
+pub fn TestCompileCommandsGeneration(b: *std.Build, lib: *Compile, exe: *Compile) !void {
+    try utilz.compile_commands.generateCompileCommands(b, &.{
+        lib,
+        exe
+    });
 }

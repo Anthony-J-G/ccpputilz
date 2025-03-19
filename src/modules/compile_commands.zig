@@ -9,11 +9,13 @@ var compile_steps: ?[]*std.Build.Step.Compile = null;
 
 const CSourceFiles = std.Build.Module.CSourceFiles;
 
+
 /// A list of files (by absolute path) to compile with the given flags
 const AbsoluteCSourceFiles = struct {
     files: []const []const u8,
     flags: []const []const u8,
 };
+
 
 const CompileCommandEntry = struct {
     arguments: []const []const u8,
@@ -23,7 +25,7 @@ const CompileCommandEntry = struct {
 };
 
 
-pub fn compileDB(b: *std.Build, artifacts: []const *std.Build.Step.Compile) !void {
+pub fn generateCompileCommands(b: *std.Build, artifacts: []const *std.Build.Step.Compile) !void {
     const step = b.allocator.create(std.Build.Step) catch @panic("Allocation failure, probably OOM");
     compile_steps = b.allocator.dupe(*std.Build.Step.Compile, artifacts) catch @panic("OOM");
 
@@ -192,7 +194,7 @@ fn getCSources(b: *std.Build, steps: []const *std.Build.Step.Compile) []*Absolut
                 .win32_resource_file => {
                     continue;
                 },
-                .c_source_file => {
+                .c_source_file => |file| {
                     // convert C source file into absolute C source files
                     const path = link_object.c_source_file.file.getPath(b);
                     var files_mem = allocator.alloc([]const u8, 1) catch @panic("Allocation failure, probably OOM");
@@ -211,6 +213,7 @@ fn getCSources(b: *std.Build, steps: []const *std.Build.Step.Compile) []*Absolut
                         } },
                         .files = files_mem,
                         .flags = flags.toOwnedSlice() catch @panic("OOM"),
+                        .language = file.language,
                     });
 
                     res.append(abs_source_file) catch @panic("OOM");
@@ -235,11 +238,10 @@ fn getCSources(b: *std.Build, steps: []const *std.Build.Step.Compile) []*Absolut
     return res.toOwnedSlice() catch @panic("OOM");
 }
 
-fn makeCdb(step: *std.Build.Step, prog_node: std.Progress.Node) anyerror!void {
+fn makeCdb(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
     if (compile_steps == null) {
         @panic("No compile steps registered. Programmer error in createStep");
     }
-    _ = prog_node;
     const allocator = step.owner.allocator;
     const b = step.owner;
     // NOTE: these are not sane defaults really, but atm I don't care about accurately providing the
