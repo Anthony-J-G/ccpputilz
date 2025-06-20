@@ -8,6 +8,9 @@ For more information about the Zig programming language, you can visit the [Offi
 ## License
 `ccpputilz` is distributed under the very permissive MIT license. See [LICENSE.md](LICENSE.md) for details.
 
+## Features
+The library contains three types of modules, `internal`, `builtin`, and `extensions`. 
+
 ## Installation and Basic Usage
 Installation is trivial when using the `zig fetch` command.
 
@@ -25,6 +28,18 @@ fn build(b: *std.Build) {
 }
 ```
 
+For more granularity in fetching the library, you can modify the `zig fetch` command in one of the following ways:
 
+```bash
+zig fetch --save=<alias> git+https://github.com/anthony-j-g/ccpputilz.git
+```
+
+```bash
+zig fetch git+https://github.com/anthony-j-g/ccpputilz#<branch name>
+```
+
+```bash
+zig fetch git+https://github.com/anthony-j-g/ccpputilz#<commit SHA256 hash>
+```
 
 
