@@ -38,9 +38,9 @@ pub fn FindVulkan(target: std.Build.ResolvedTarget, options: FindVulkanOptions) 
     const allocator = arena.allocator();
 
     // Declare search paths
-    var vk_includepaths = ArrayListUnmanaged([]const u8).initCapacity(allocator, 10) catch @panic("OOM");
-    var vk_binpaths = ArrayListUnmanaged([]const u8).initCapacity(allocator, 10) catch @panic("OOM");
-    var vk_libpaths = ArrayListUnmanaged([]const u8).initCapacity(allocator, 10) catch @panic("OOM");
+    _ = ArrayListUnmanaged([]const u8).initCapacity(allocator, 10) catch @panic("OOM");
+    _ = ArrayListUnmanaged([]const u8).initCapacity(allocator, 10) catch @panic("OOM");
+    _ = ArrayListUnmanaged([]const u8).initCapacity(allocator, 10) catch @panic("OOM");
 
     _ = 0;
 

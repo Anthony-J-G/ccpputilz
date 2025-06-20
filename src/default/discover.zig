@@ -6,6 +6,9 @@ const fmt = std.fmt;
 const LazyPath = std.Build.LazyPath;
 const Cache = std.Build.Cache;
 
+/// An `ArrayHashMap` with default hash and equal functions.
+///
+/// See `AutoContext` for a description of the hash and equal implementations.
 const SourceType = enum(u8) {
     invalid = 0 << 0,
     c = 1 << 1,

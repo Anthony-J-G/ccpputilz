@@ -1,24 +1,23 @@
-const testing = @import("std").testing;
+// Default Modules (available by default)
+pub const discover          = @import("default/discover.zig");
+pub const version           = @import("default/version.zig");
+pub const compile_commands  = @import("default/compile_commands.zig");
+pub const tests             = @import("default/tests.zig");
+pub const autodoc           = @import("default/autodoc.zig");
 
 
-pub const discoverCSourceFiles = discover.discoverCSourceFiles;
+// Third Party Extension Modules (require additional dependencies)
+pub const corrosion         = @import("extensions/corrosion.zig"); // TODO(anthony-j-g): Make it so that if a client tries to call this, they get a @panic error
+pub const gtest             = @import("extensions/gtest.zig");
+pub const find_vulkan       = @import("extensions/find_vulkan.zig");
 
 
-
-pub const discover = @import("modules/discover.zig");
-pub const corrosion = @import("modules/corrosion.zig");
-pub const version = @import("modules/version.zig");
-pub const compile_commands = @import("modules/compile_commands.zig");
-// pub const find_vulkan = @import("modules/find_vulkan.zig");
-// pub const autodoc = @import("modules/autodoc.zig")
-pub const gtest = @import("modules/gtest.zig");
-
-/// For internal use only
-const tests = @import("internal/testing.zig");
+/// Internal Modules (For internal use only)
+// const tests = @import("internal/testing.zig");
 const root = @import("root");
 
 
-
+const testing = @import("std").testing;
 test {
     testing.refAllDecls(@This());
 }
