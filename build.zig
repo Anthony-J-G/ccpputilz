@@ -1,6 +1,6 @@
 const std = @import("std");
 const ccpputilz = @import("src/ccpputilz.zig");
-pub usingnamespace ccpputilz;
+
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) void {
     // Generate Docs
     const install_docs = b.addInstallDirectory(.{
         .source_dir = module.getEmittedDocs(),
-        .install_dir = .{ .custom = "" },
+        .install_dir = .prefix,
         .install_subdir = "docs",
     });
     const docs_step = b.step("docs", "Install docs into zig-out/docs");
