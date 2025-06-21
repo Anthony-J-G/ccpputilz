@@ -3,8 +3,11 @@ const builtin = @import("builtin");
 const fs = std.fs;
 const mem = std.mem;
 const fmt = std.fmt;
+
+const Build = std.Build;
 const LazyPath = std.Build.LazyPath;
 const Cache = std.Build.Cache;
+const CSourceFiles = std.Build.Module.CSourceFiles;
 
 /// An `ArrayHashMap` with default hash and equal functions.
 ///
@@ -42,7 +45,6 @@ const SourceType = enum(u8) {
     }
 };
 
-
 pub const DiscoverCSourceFilesOptions = struct {
     /// Path relative to the build directory
     root: ?LazyPath,
@@ -55,7 +57,6 @@ const Path = struct {
     sub_path: []const u8,
 };
 
-
 const SourceFilters = struct {
     include_pattern: []const u8 = "", // Currently does nothing, but hopefully will be able to compare against found files using regex
     exclude_pattern: []const u8 = "", // Currently does nothing, but hopefully will be able to compare against found files using regex
@@ -64,9 +65,10 @@ const SourceFilters = struct {
     /// Only file paths that end in any of these suffixes will be included in installation.
     /// `null` means that all suffixes will be included.
     /// `exclude_extensions` takes precedence over `include_extensions`.
-    include_extensions: []const []const u8 = &.{ "c", "cpp", "cc", "cxx"},
+    include_extensions: []const []const u8 = &.{ "c", "cpp", "cc", "cxx" },
 };
 
+//
 /// TODO: Has a pretty naive implementation at the moment because I just want to get it working. This should be revisted sooner
 /// rather than later.
 fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFilters) !std.ArrayListUnmanaged([]const u8) {
@@ -86,7 +88,7 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
         .generated => @panic("Invalid LazyPath `srcDir`"),
     };
     // std.debug.print("Searching -- root: {s}; subpath: {s}\n", .{path.root_dir.path orelse ".", path.sub_path});
-    var dir = try path.root_dir.handle.openDir(path.sub_path, .{.iterate = true});
+    var dir = try path.root_dir.handle.openDir(path.sub_path, .{ .iterate = true });
     defer dir.close();
 
     var walker = try dir.walk(allocator);
@@ -110,10 +112,12 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
                 break;
             }
         }
-        if (should_exclude) { continue; }
+        if (should_exclude) {
+            continue;
+        }
 
         var should_include = false;
-        for (filters.include_extensions) |ext| {            
+        for (filters.include_extensions) |ext| {
             if (mem.eql(u8, file_extension, ext)) {
                 should_include = true;
                 break;
@@ -129,13 +133,36 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
     return sources;
 }
 
+/// Discover C/C++ source files in a source directory and make them available to the buildsystem.
+///
+/// Because both `std.Build.Step.Compile` and `std.Build.Module` structures support the insertion
+/// of `std.Build.Module.CSourceFiles` via their respective `addCSourceFiles` functions, we use a
+/// comptime parameter to explcitly tell the function which version to use.
+pub fn discoverCSourceFiles(comptime T: type, ptr: *T, options: DiscoverCSourceFilesOptions) void {
+    comptime {
+        if (T != std.Build.Step.Compile or T != std.Build.Module) {
+            @panic("function `discoverCSourceFiles` requires a pointer input of type `std.Build.Module` or `std.Build.Step.Compile` ");
+        }
+    }
+    switch (T) {
+        std.Build.Step.Compile => {
+            discoverCSourceFilesForCompileStep(ptr, options);
+        },
+        std.Build.Module => {
+            discoverCSourceFilesForModule(ptr, options);
+        },
+        else => {
+            unreachable;
+        },
+    }
+}
 
-/// Discover C/C++ source files of the given extensions in a root 
-/// directory and implicitly add them to the input Compile Step
-pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) !void {
+fn discoverCSourceFilesForCompileStep(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) void {
     const b = cs.root_module.owner;
+    const allocator = b.allocator;
+
     const search_root = options.root orelse b.path("");
-    const sources = findSources(b.allocator, search_root, options.filters) catch @panic("OOM");
+    const sources = findSources(allocator, search_root, options.filters) catch @panic("OOM");
 
     cs.addCSourceFiles(.{
         .root = search_root,
@@ -144,15 +171,19 @@ pub fn discoverCSourceFiles(cs: *std.Build.Step.Compile, options: DiscoverCSourc
     });
 }
 
+fn discoverCSourceFilesForModule(_: *std.Build.Module, _: DiscoverCSourceFilesOptions) void {}
+
 test "check FileList for leaks" {
-//    var filelist = try FileList.init(std.testing.allocator, @intFromEnum(SourceType.c), @intFromEnum(HeaderType.h));
-//    filelist.source_bitmask = (@intFromEnum(SourceType.c) | @intFromEnum(SourceType.cpp) | @intFromEnum(SourceType.cc));
-//    filelist.header_bitmask = (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp));
-//    defer filelist.deinit();
-//
-//    try filelist.findSources(
-//        "tests/discover",
-//    );
+    //    var filelist = try FileList.init(std.testing.allocator, @intFromEnum(SourceType.c), @intFromEnum(HeaderType.h));
+    //    filelist.source_bitmask = (@intFromEnum(SourceType.c) | @intFromEnum(SourceType.cpp) | @intFromEnum(SourceType.cc));
+    //    filelist.header_bitmask = (@intFromEnum(HeaderType.h) | @intFromEnum(HeaderType.hpp));
+    //    defer filelist.deinit();
+    //
+    //    try filelist.findSources(
+    //        "tests/discover",
+    //    );
 }
 
-test "discover the correct amount of sources" {}
+test discoverCSourceFiles {
+    inline for ([_]type{ Build.Module, Build.Step.Compile }) |_| {}
+}

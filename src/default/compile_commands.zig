@@ -3,19 +3,18 @@
 /// https://github.com/the-argus/zig-compile-commands.git
 /// Licensed under GNU GPL
 const std = @import("std");
+const Build = std.Build;
+const Step = Build.Step;
+const CSourceFiles = Build.Module.CSourceFiles;
 
 // here's the static memory!!!!
 var compile_steps: ?[]*std.Build.Step.Compile = null;
-
-const CSourceFiles = std.Build.Module.CSourceFiles;
-
 
 /// A list of files (by absolute path) to compile with the given flags
 const AbsoluteCSourceFiles = struct {
     files: []const []const u8,
     flags: []const []const u8,
 };
-
 
 const CompileCommandEntry = struct {
     arguments: []const []const u8,
@@ -24,12 +23,11 @@ const CompileCommandEntry = struct {
     output: []const u8,
 };
 
+pub fn generateCompileCommands(b: *Build, artifacts: []const *Step.Compile) !void {
+    const step = b.allocator.create(Step) catch @panic("Allocation failure, probably OOM");
+    compile_steps = b.allocator.dupe(*Step.Compile, artifacts) catch @panic("OOM");
 
-pub fn generateCompileCommands(b: *std.Build, artifacts: []const *std.Build.Step.Compile) !void {
-    const step = b.allocator.create(std.Build.Step) catch @panic("Allocation failure, probably OOM");
-    compile_steps = b.allocator.dupe(*std.Build.Step.Compile, artifacts) catch @panic("OOM");
-
-    step.* = std.Build.Step.init(.{
+    step.* = Step.init(.{
         .id = .custom,
         .name = "cc_file",
         .makeFn = makeCdb,
@@ -37,7 +35,6 @@ pub fn generateCompileCommands(b: *std.Build, artifacts: []const *std.Build.Step
     });
     b.getInstallStep().dependOn(step);
 }
-
 
 pub fn createStep(b: *std.Build, name: []const u8, targets: []*std.Build.Step.Compile) void {
     const step = b.allocator.create(std.Build.Step) catch @panic("Allocation failure, probably OOM");
