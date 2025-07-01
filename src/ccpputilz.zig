@@ -1,5 +1,6 @@
 // Default Modules (available by without need for 3rd party libraries)
-pub const default = @import("default.zig");
+pub const default   = @import("default.zig");
+pub const compiledb = @import("default/compiledb.zig");
 
 // Extension Modules (available only if client also fetches 3rd party libraries)
 pub const extensions = @import("extensions.zig");
