@@ -23,7 +23,7 @@ const CompileCommandEntry = struct {
     output: []const u8,
 };
 
-pub fn generateCompileCommands(b: *Build, artifacts: []const *Step.Compile) !void {
+pub fn generateCompileCommands(b: *Build, artifacts: []const *Step.Compile) error{OutOfMemory}!void {
     const step = b.allocator.create(Step) catch @panic("Allocation failure, probably OOM");
     compile_steps = b.allocator.dupe(*Step.Compile, artifacts) catch @panic("OOM");
 
