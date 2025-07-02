@@ -5,9 +5,12 @@ const mem = std.mem;
 const fmt = std.fmt;
 
 const Build = std.Build;
+const Step = Build.Step;
+const Module = Build.Module;
 const LazyPath = std.Build.LazyPath;
 const Cache = std.Build.Cache;
 const CSourceFiles = std.Build.Module.CSourceFiles;
+const CSourceLanguage = std.Build.Module.CSourceLanguage;
 
 /// An `ArrayHashMap` with default hash and equal functions.
 ///
@@ -49,6 +52,7 @@ pub const DiscoverCSourceFilesOptions = struct {
     /// Path relative to the build directory
     root: ?LazyPath,
     flags: []const []const u8 = &.{},
+    language: ?CSourceLanguage = null, 
     filters: SourceFilters = .{},
 };
 
@@ -138,17 +142,17 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
 /// Because both `std.Build.Step.Compile` and `std.Build.Module` structures support the insertion
 /// of `std.Build.Module.CSourceFiles` via their respective `addCSourceFiles` functions, we use a
 /// comptime parameter to explcitly tell the function which version to use.
-pub fn discoverCSourceFiles(comptime T: type, ptr: *T, options: DiscoverCSourceFilesOptions) void {
+pub fn discoverCSourceFiles(ptr: anytype, options: DiscoverCSourceFilesOptions) void {
     comptime {
-        if (T != std.Build.Step.Compile or T != std.Build.Module) {
-            @panic("function `discoverCSourceFiles` requires a pointer input of type `std.Build.Module` or `std.Build.Step.Compile` ");
+        if (@TypeOf(ptr) != *Step.Compile and @TypeOf(ptr) != *Module) {
+            @panic("Error: function `discoverCSourceFiles` requires a pointer input of type `std.Build.Step.Compile` or `std.Build.Module`");
         }
     }
-    switch (T) {
-        std.Build.Step.Compile => {
+    switch (@TypeOf(ptr)) {
+        *std.Build.Step.Compile => {
             discoverCSourceFilesForCompileStep(ptr, options);
         },
-        std.Build.Module => {
+        *std.Build.Module => {
             discoverCSourceFilesForModule(ptr, options);
         },
         else => {

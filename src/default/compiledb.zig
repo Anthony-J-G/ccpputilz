@@ -7,6 +7,8 @@ const Build = std.Build;
 const Step = Build.Step;
 const CSourceFiles = Build.Module.CSourceFiles;
 
+const CompileDB = @This();
+
 // here's the static memory!!!!
 var compile_steps: ?[]*std.Build.Step.Compile = null;
 
@@ -23,7 +25,43 @@ const CompileCommandEntry = struct {
     output: []const u8,
 };
 
-pub fn generateCompileCommands(b: *Build, artifacts: []const *Step.Compile) error{OutOfMemory}!void {
+
+pub fn create(
+    b: *std.Build,
+) error{OutOfMemory}!*CompileDB {
+    const allocator = b.allocator;
+
+    const db = try allocator.create(CompileDB);
+    db.* = .{
+
+    };
+
+    return db;
+}
+
+
+/// Iterate over all of the 
+pub fn generateFromInstallStep(b: *std.Build) void {
+    const allocator = b.allocator;
+    const install_step = b.getInstallStep();
+    var cs = std.ArrayList(*Step.Compile).init(allocator);
+
+    for (install_step.dependencies.items) |step| {
+        switch (step.id) {
+            .install_artifact => {
+                const ia = step.cast(Step.InstallArtifact).?;
+                cs.append(ia.artifact) catch @panic("OOM");
+            },
+            else => {std.log.info("found step with id {}", .{step.id});}
+        }
+    }
+    std.log.info("found compile steps {d} out of {d} dependencies", .{cs.items.len, install_step.dependencies.items.len});
+    const owned_compile_steps = cs.toOwnedSlice() catch @panic("OOM");
+    generateFromArtifacts(b, owned_compile_steps);
+}
+
+
+pub fn generateFromArtifacts(b: *std.Build, artifacts: []const *Step.Compile) void {
     const step = b.allocator.create(Step) catch @panic("Allocation failure, probably OOM");
     compile_steps = b.allocator.dupe(*Step.Compile, artifacts) catch @panic("OOM");
 
@@ -35,6 +73,36 @@ pub fn generateCompileCommands(b: *Build, artifacts: []const *Step.Compile) erro
     });
     b.getInstallStep().dependOn(step);
 }
+
+
+pub fn generateCompileCommands(b: *Build, artifacts: []const *Step.Compile) void {
+    const step = b.allocator.create(Step) catch @panic("Allocation failure, probably OOM");
+    compile_steps = b.allocator.dupe(*Step.Compile, artifacts) catch @panic("OOM");
+
+    step.* = Step.init(.{
+        .id = .custom,
+        .name = "cc_file",
+        .makeFn = makeCdb,
+        .owner = b,
+    });
+    b.getInstallStep().dependOn(step);
+}
+
+
+pub fn createCompiledbStep(b: *Build, artifacts: []const *Step.Compile) *Step {
+    const step = b.allocator.create(Step) catch @panic("Allocation failure, probably OOM");
+    compile_steps = b.allocator.dupe(*Step.Compile, artifacts) catch @panic("OOM");
+
+    step.* = Step.init(.{
+        .id = .custom,
+        .name = "cc_file",
+        .makeFn = makeCdb,
+        .owner = b,
+    });
+
+    return step;
+}
+
 
 pub fn createStep(b: *std.Build, name: []const u8, targets: []*std.Build.Step.Compile) void {
     const step = b.allocator.create(std.Build.Step) catch @panic("Allocation failure, probably OOM");

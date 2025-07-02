@@ -1,5 +1,6 @@
 const std = @import("std");
 const ccpputilz = @import("src/ccpputilz.zig");
+pub usingnamespace ccpputilz;
 
 
 pub fn build(b: *std.Build) void {

@@ -64,7 +64,7 @@ pub fn createTestStep(b: *std.Build, options: CreateTestStepOptions) *std.Build.
     const googletest = b.dependency("googletest", .{});
 
     const name = options.name orelse "tests";
-    const entry_point = options.entry_point orelse googletest.path("googletest/gtest/src/gtest_main.cc");
+    const entry_point = options.entry_point orelse googletest.path("googletest/src/gtest_main.cc");
     const target = options.target;
     const optimize = options.optimize orelse std.builtin.OptimizeMode.Debug;
 
@@ -75,11 +75,11 @@ pub fn createTestStep(b: *std.Build, options: CreateTestStepOptions) *std.Build.
     });
     exe.addCSourceFile(.{
         .file = entry_point,
-        .flags = &.{} 
+        .flags = &.{"-std=c++17"} 
     });
     exe.addCSourceFile(.{
         .file = googletest.path("googletest/src/gtest-all.cc"),
-        .flags = &.{}
+        .flags = &.{"-std=c++17"}
     });
     exe.addIncludePath(googletest.path("googletest/include"));
     exe.addIncludePath(googletest.path("googletest"));
@@ -90,6 +90,7 @@ pub fn createTestStep(b: *std.Build, options: CreateTestStepOptions) *std.Build.
         run_unit_tests.addArgs(args);
     }
     const test_step = b.step(name, "Run unit tests");
+    run_unit_tests.step.dependOn(b.getInstallStep());
     test_step.dependOn(&run_unit_tests.step);
 
     return exe;
