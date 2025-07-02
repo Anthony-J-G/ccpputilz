@@ -55,7 +55,6 @@ pub fn generateFromInstallStep(b: *std.Build) void {
             else => {std.log.info("found step with id {}", .{step.id});}
         }
     }
-    std.log.info("found compile steps {d} out of {d} dependencies", .{cs.items.len, install_step.dependencies.items.len});
     const owned_compile_steps = cs.toOwnedSlice() catch @panic("OOM");
     generateFromArtifacts(b, owned_compile_steps);
 }
