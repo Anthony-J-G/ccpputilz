@@ -1,0 +1,3 @@
+# C/C++ Utilities Usage Example
+
+The following directory is an example usage of the Zig module for use in compiling and testing a sample C/C++ library and executable. The sample follows along the "Neural Networks from Scratch in Python" by Harrision Kinsley and Daniel Kukiela (licensed under MIT) as illustrative example. Obviously the implementation is shifted to be in C/C++ and makes use of the Eigen library to avoid implmenting linear algebra framework.

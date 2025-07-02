@@ -1,8 +1,8 @@
 .{
-    .name = "ccpputilz",
+    .name = .ccpputilz,
     .version = "0.1.0",
-    .minimum_zig_version = "0.13.0",
-
+    .minimum_zig_version = "0.14.1",
+    .fingerprint = 0xd138c72fb193e3a7,
     .dependencies = .{
     },
 

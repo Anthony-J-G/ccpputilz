@@ -1,17 +1,14 @@
-const std = @import("std");
-const testing = std.testing;
+// Default Modules (available by without need for 3rd party libraries)
+pub const default   = @import("default.zig");
 
-pub const discover = @import("discover.zig");
-pub const corrosion = @import("corrosion.zig");
-pub const version = @import("version.zig");
-pub const cdb = @import("compile_commands.zig");
-// pub const find_vulkan = @import("find_vulkan.zig");
-pub const gtest = @import("gtest.zig");
+// Extension Modules (available only if client also fetches 3rd party libraries)
+pub const extensions = @import("extensions.zig");
 
-/// For internal use only
-const tests = @import("internal/testing.zig");
+/// Internal Modules (For internal use only)
+// const tests = @import("internal/testing.zig");
+const root = @import("root");
 
-
+const testing = @import("std").testing;
 test {
     testing.refAllDecls(@This());
 }
