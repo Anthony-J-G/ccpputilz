@@ -12,41 +12,6 @@ const Cache = std.Build.Cache;
 const CSourceFiles = std.Build.Module.CSourceFiles;
 const CSourceLanguage = std.Build.Module.CSourceLanguage;
 
-/// An `ArrayHashMap` with default hash and equal functions.
-///
-/// See `AutoContext` for a description of the hash and equal implementations.
-const SourceType = enum(u8) {
-    invalid = 0 << 0,
-    c = 1 << 1,
-    cpp = 1 << 2,
-    cxx = 1 << 3,
-    cc = 1 << 4,
-    C = 1 << 5,
-    stub = 1 << 6,
-
-    fn getFromFilename(filename: []const u8) SourceType {
-        const extension = fs.path.extension(filename);
-        if (mem.eql(u8, extension, ".c")) {
-            return SourceType.c;
-        } else if (mem.eql(u8, extension, ".cpp")) {
-            return SourceType.cpp;
-        } else if (mem.eql(u8, extension, ".cxx")) {
-            return SourceType.cxx;
-        } else if (mem.eql(u8, extension, ".cc")) {
-            return SourceType.cc;
-        } else if (mem.eql(u8, extension, ".C")) {
-            return SourceType.C;
-        } else if (mem.eql(u8, extension, ".stub")) {
-            return SourceType.stub;
-        } else {
-            return SourceType.invalid;
-        }
-    }
-
-    fn isValidSource(self: SourceType, bitmask: u8) bool {
-        return (@intFromEnum(self) & bitmask) != 0;
-    }
-};
 
 pub const DiscoverCSourceFilesOptions = struct {
     /// Path relative to the build directory
@@ -72,10 +37,10 @@ const SourceFilters = struct {
     include_extensions: []const []const u8 = &.{ "c", "cpp", "cc", "cxx" },
 };
 
-//
-/// TODO: Has a pretty naive implementation at the moment because I just want to get it working. This should be revisted sooner
-/// rather than later.
-fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFilters) !std.ArrayListUnmanaged([]const u8) {
+
+/// Start in the root of the target directory and walk all the files, searching for any that match the currently selected language.
+fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, _: ?CSourceLanguage, filters: SourceFilters) !std.ArrayListUnmanaged([]const u8) {
+    // properly handle LazyPath union options
     const path: Path = switch (srcDir) {
         .src_path => |sp| Path{
             .root_dir = sp.owner.build_root,
@@ -89,9 +54,9 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
             .root_dir = dep.dependency.builder.build_root,
             .sub_path = dep.sub_path,
         },
-        .generated => @panic("Invalid LazyPath `srcDir`"),
+        .generated => @panic("Invalid LazyPath `srcDir`"), // Don't allow searching generated paths
     };
-    // std.debug.print("Searching -- root: {s}; subpath: {s}\n", .{path.root_dir.path orelse ".", path.sub_path});
+   
     var dir = try path.root_dir.handle.openDir(path.sub_path, .{ .iterate = true });
     defer dir.close();
 
@@ -105,6 +70,7 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
         if (entry.kind != fs.File.Kind.file) {
             continue; // Continue if entry is NOT a file
         }
+
         var it = std.mem.splitBackwardsScalar(u8, entry.basename, '.');
         const split = it.first();
         const file_extension = if (mem.eql(u8, split, entry.basename)) "" else split; // Handle case where there is no file extension
@@ -132,10 +98,10 @@ fn findSources(allocator: std.mem.Allocator, srcDir: LazyPath, filters: SourceFi
             try sources.append(allocator, fullpath);
         }
     }
-    // std.debug.print("\nScanned: {d} files; found {d}\n", .{t, sources.items.len});
 
     return sources;
 }
+
 
 /// Discover C/C++ source files in a source directory and make them available to the buildsystem.
 ///
@@ -161,12 +127,14 @@ pub fn discoverCSourceFiles(ptr: anytype, options: DiscoverCSourceFilesOptions) 
     }
 }
 
+
+/// Search the source directroy and add them directly to the *Step.Compile struct
 fn discoverCSourceFilesForCompileStep(cs: *std.Build.Step.Compile, options: DiscoverCSourceFilesOptions) void {
     const b = cs.root_module.owner;
     const allocator = b.allocator;
 
     const search_root = options.root orelse b.path("");
-    const sources = findSources(allocator, search_root, options.filters) catch @panic("OOM");
+    const sources = findSources(allocator, search_root, options.language, options.filters) catch @panic("OOM");
 
     cs.addCSourceFiles(.{
         .root = search_root,
@@ -175,7 +143,21 @@ fn discoverCSourceFilesForCompileStep(cs: *std.Build.Step.Compile, options: Disc
     });
 }
 
-fn discoverCSourceFilesForModule(_: *std.Build.Module, _: DiscoverCSourceFilesOptions) void {}
+
+fn discoverCSourceFilesForModule(module: *std.Build.Module, options: DiscoverCSourceFilesOptions) void {
+    const b = module.owner;
+    const allocator = b.allocator;
+
+    const search_root = options.root orelse b.path("");
+    const sources = findSources(allocator, search_root, options.language, options.filters) catch @panic("OOM");
+
+    module.addCSourceFiles(.{
+        .root = search_root,
+        .files = sources.items,
+        .flags = options.flags,
+    });
+}
+
 
 test "check FileList for leaks" {
     //    var filelist = try FileList.init(std.testing.allocator, @intFromEnum(SourceType.c), @intFromEnum(HeaderType.h));
